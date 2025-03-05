@@ -1,0 +1,6 @@
+packages:
+        .
+        ../beam/beam-core
+        ../beam/beam-migrate
+        ../beam/beam-postgres
+        ../beam/beam-sqlite

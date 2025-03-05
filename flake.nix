@@ -29,7 +29,7 @@
                   haskell-language-server = {};
                 };
                 shell.buildInputs = with pkgs; [
-                  nixpkgs-fmt sqlite-interactive
+                  nixpkgs-fmt sqlite-interactive ormolu
                 ];
                 evalSystem = "x86_64-linux";
               };

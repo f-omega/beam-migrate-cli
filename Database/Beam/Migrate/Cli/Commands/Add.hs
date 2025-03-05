@@ -1,15 +1,18 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Database.Beam.Migrate.Cli.Commands.Add where
 
---import Database.Beam.Migrate.Cli.Message
-import           Database.Beam.Migrate.Cli.Types
-import           Database.Beam.Migrate.Cli.Registry
 import           Database.Beam.Migrate.Cli.Commands.Common
+import           Database.Beam.Migrate.Cli.Message
+import           Database.Beam.Migrate.Cli.Registry
+import           Database.Beam.Migrate.Cli.Types
 
 import           Control.Lens ((^.), (&), (.~))
 import           Control.Monad (unless, forM_)
 
 import           Data.Maybe (maybeToList)
 import qualified Data.Set as Set
+import           Data.String (fromString)
 
 import           System.Directory (createDirectory)
 
@@ -23,13 +26,13 @@ beamMigrateAdd ctxt add = do
 
   mLastMigration <-
       case mBranchStatus of
-        Just (_, BranchStatus Working _) -> beamMigrateError ctxt ("Could not add a new migration, because there is still a migration in progress: " ++ show branch)
+        Just (_, BranchStatus Working _) -> beamMigrateError ctxt ("Could not add a new migration, because there is still a migration in progress: " <> pretty branch)
         Just (migrationName, _) -> pure (Just migrationName)
         _ -> pure Nothing
 
   forM_ (add ^. addMigrationDeps) $ \dep ->
     unless (isValidMigrationName dep) $
-      beamMigrateError ctxt (show dep ++ " is not a valid migration name for a dependency")
+      beamMigrateError ctxt (pretty dep <> " is not a valid migration name for a dependency")
 
   commitMessage <- getOrEditMessage ctxt (commitMessageTemplate (add ^. addMigrationName)) (add ^. addCommitMessage)
 
@@ -42,7 +45,7 @@ beamMigrateAdd ctxt add = do
 
   modifyContextRegistry' ctxt $ \reg ->
     case addRegistryEntry reg (RegEntryMigration newMigration) of
-      Left msg -> beamMigrateError ctxt ("Could not add registry entry: " <> msg)
+      Left msg -> beamMigrateError ctxt ("Could not add registry entry: " <> fromString msg)
       Right reg -> pure reg
 
   -- Create structure for this migration
@@ -63,7 +66,7 @@ beamMigrateAdd ctxt add = do
   notifyWriteFile ctxt (MigrateFile (add ^. addMigrationName) RevertScript) revertScriptTemplate
   notifyWriteFile ctxt (MigrateFile (add ^. addMigrationName) VerifyScript) verifyScriptTemplate
 
-  beamMigrateMessage ctxt ("Files were written to " <> newDirName)
+  beamMigrateMessage ctxt ("Files were written to " <> filename newDirName)
 
 applyScriptTemplate, revertScriptTemplate, verifyScriptTemplate :: String
 applyScriptTemplate = "-- Insert SQL commands here to apply this migration"
