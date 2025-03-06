@@ -1,8 +1,8 @@
 # `beam-migrate-cli`: CLI tool for `beam-migrate`
 
-[`beam-migrate`](_) provides a generic backend for the implementation of frontend migrations
-tools. `beam-migrate-cli` is designed to work with `beam-migrate` to enable principled migrations
-for `beam` databases.
+[`beam-migrate`](https://hackage.haskell.org/package/beam-migrate) provides a generic backend for
+the implementation of frontend migrations tools. `beam-migrate-cli` is designed to work with
+`beam-migrate` to enable principled migrations for `beam` databases.
 
 ## Features
 
