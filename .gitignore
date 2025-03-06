@@ -1,3 +1,5 @@
+.beam-migrate
+beam_migrations
 *.cabal
 .direnv
 .envrc
