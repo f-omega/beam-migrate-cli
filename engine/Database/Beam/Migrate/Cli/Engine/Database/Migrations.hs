@@ -25,7 +25,7 @@ beamMigrateDbCurrentVersion :: Int32
 beamMigrateDbCurrentVersion = 1
 
 getMigrationsFrom :: forall be m
-                   . HasDefaultSqlDataType be LocalTime
+                   . HasDefaultSxqlDataType be LocalTime
                   => BeamMigrationBackend be m
                   -> DatabaseSettings be BeamMigrateDb
                   -> Int -> [[BeamSqlBackendSyntax be]]

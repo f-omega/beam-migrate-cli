@@ -64,7 +64,6 @@ beamMigrateMigrate ctx cmd = do
            dieOnDdlError ctx $
            runMigration ctx $ \BeamMigrationBackend { backendRunSqlScript = runScript
                                                     , backendWithTransaction = withTransaction } migrateDb -> do
-             liftIO (beamMigrateMessage ctx ("migrations are " <> pretty (map (view miName) <$> toApply)))
 
              let undo partial applied = error "undo: TODO"
 

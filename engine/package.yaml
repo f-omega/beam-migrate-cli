@@ -41,6 +41,5 @@ library:
     - Database.Beam.Migrate.Cli.Engine.Internal
   other-modules:
     - Database.Beam.Migrate.Cli.Engine.Types
-    - Database.Beam.Migrate.Cli.Engine.Registry
     - Database.Beam.Migrate.Cli.Engine.Database
     - Database.Beam.Migrate.Cli.Engine.Database.Migrations
