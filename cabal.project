@@ -1,5 +1,6 @@
 packages:
-        .
+	engine
+	cli
         ../beam/beam-core
         ../beam/beam-migrate
         ../beam/beam-postgres

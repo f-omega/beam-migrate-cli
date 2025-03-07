@@ -103,19 +103,32 @@ cliOptsParser bm =
               ConnStr <$> strOption (long "connstr" <> short 'C' <> help "Database connection string to use" <> metavar "CONNSTR")
           | otherwise = empty
 
-      cliCommand = subparser . mconcat $
+      cliCommand = genericCommands <|> workflowCommands <|> verificationCommands
+
+      genericCommands =
+          subparser . mconcat $
                    [ command "status" (info (statusCmd <**> helper) (progDesc "Get status of migration registry"))
                    , command "log" (info (logCmd <**> helper) (progDesc "Show changes made to database"))
-                   , command "add" (info (addCmd <**> helper) (progDesc "Add a new migration to the registry"))
+                   , command "db" (info (dbCmd <**> helper) (progDesc "Manage the database directly"))
+                   ]
+
+      workflowCommands =
+          subparser . mconcat $
+                   [ command "add" (info (addCmd <**> helper) (progDesc "Add a new migration to the registry"))
                    , command "abort" (info (abortCmd <**> helper) (progDesc "Abort a migration in progress"))
                    , command "migrate" (info (migrateCmd <**> helper) (progDesc "Get status of migration registry"))
-                   , command "verify" (info (verifyCmd <**> helper) (progDesc "Get status of migration registry"))
-                   , command "db" (info (dbCmd <**> helper) (progDesc "Manage the database directly"))
-
-                   , command "edit" (info (editCmd <**> helper) (progDesc "Edit files for migration"))
                    , command "commit" (info (commitCmd <**> helper) (progDesc "Commit a migration to the registry"))
-                   , command "diff" (info (diffCmd <**> helper) (progDesc "Get difference between two database specs"))
+                   , command "edit" (info (editCmd <**> helper) (progDesc "Edit files for migration"))
                    , command "pickle" (info (pickleCmd <**> helper) (progDesc "Generate a Haskell module containing a snapshot of the registry and migrations database"))
+                   , commandGroup "Workflow Commands:"
+                   ]
+
+
+      verificationCommands =
+          subparser . mconcat $
+                   [ command "verify" (info (verifyCmd <**> helper) (progDesc "Get status of migration registry"))
+                   , command "diff" (info (diffCmd <**> helper) (progDesc "Get difference between two database specs"))
+                   , commandGroup "Schema Management:"
                    ]
 
       statusCmd = Status <$>

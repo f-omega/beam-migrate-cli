@@ -1,0 +1,22 @@
+name: beam-migrate-cli-engine
+description: >-
+  "beam-migrate-cli-engine" contains the core functionality of the
+  "beam-migrate-cli" library. This is meant to be embedded in end-user
+  applications that need to use "beam-migrate-cli" functionality, but
+  don't need the whole command line tooling.
+
+  The interface here is considered highly volatile. Most usage should
+  be via "beam-migrate-cli"'s @pickle@ command, with which this
+  library will always be compatible.
+
+dependencies:
+  - base
+  - text
+  - beam
+  - beam-migrate
+  - lens
+
+library:
+  exposed-modules:
+    - Database.Beam.Migrate.Cli.Engine
+    - Database.Beam.Migrate.Cli.Engine.Internal

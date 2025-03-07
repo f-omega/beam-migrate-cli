@@ -1,0 +1,6 @@
+site_name: beam-migrate-cli
+docs_dir: content
+theme:
+  name: mkdocs
+markdown_extensions:
+  - admonition
