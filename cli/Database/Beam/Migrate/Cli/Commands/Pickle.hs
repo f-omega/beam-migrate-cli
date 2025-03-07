@@ -3,6 +3,7 @@
 module Database.Beam.Migrate.Cli.Commands.Pickle where
 
 import           Database.Beam.Migrate.Cli.Commands.Common
+import           Database.Beam.Migrate.Cli.Engine.Internal
 import           Database.Beam.Migrate.Cli.Message
 import           Database.Beam.Migrate.Cli.Registry
 import           Database.Beam.Migrate.Cli.Types
@@ -10,6 +11,7 @@ import           Database.Beam.Migrate.Cli.Types
 import           Control.Lens ((^.))
 
 import qualified Data.Map.Strict as M
+import           Data.Maybe (fromMaybe)
 import           Data.String (fromString)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -23,6 +25,14 @@ beamMigratePickle ctx cmd = do
         SelectAllBranches -> pure (registryBranches reg, False)
         SelectNamedBranches bs -> pure (bs, True)
         SelectDefaultBranch -> (,True) . pure <$> getCurrentBranchOrDie ctx
+
+  tipBranch <-
+    case cmd ^. pickleTip of
+      Nothing -> case branches of
+                   [b] -> pure b
+                   _ -> beamMigrateError ctx "Multiple branch names given, use the --tip option to determine which is used as the latest"
+      Just t | t `elem` branches -> pure t
+             | otherwise -> beamMigrateError ctx ("Invalid --tip: " <> pretty t <> " is not a valid branch")
 
   let getMigration =
           case cmd ^. pickleBranchStatus of
@@ -39,7 +49,6 @@ beamMigratePickle ctx cmd = do
                             -> beamMigrateError ctx ("Branch " <> pretty branch <> " has no migrations")
                          | otherwise -> pure []
                      Just (mig, _) -> pure [mig]
-
   obfuscateMigrationName <-
       if not (cmd ^. pickleObfuscate)
       then pure id
@@ -53,6 +62,8 @@ beamMigratePickle ctx cmd = do
         pure (\x -> case M.lookup x migMap of
                       Nothing -> error "impossible"
                       Just nm -> nm)
+
+  (obfuscateMigrationName -> MigrationName tip, _) <- fromMaybe (beamMigrateError ctx ("Branch " <> pretty tipBranch <> " has no migrations")) <$> getMigration tipBranch
 
   let (migrationClosure, migrationEdges) = mkMigrationClosure reg migrations
       files = do
@@ -84,11 +95,11 @@ beamMigratePickle ctx cmd = do
   beamMigrateOutput ctx
     (mconcat $
      [ "module ", text (cmd ^. pickleModuleName), "(migrations) where", line, line
-     , "import Database.Beam.Migrate.Engine", line, line
-     , "migrations :: Pickled", line
+     , "import Database.Beam.Migrate.Cli.Engine", line, line
+     , "migrations :: Pickle", line
      , hang 2 . mconcat $
        [ "migrations =", line
        , foldMap addEdge obfuscatedEdges
        , foldMap registerMigrationSnippet pickled
-       , "mempty" ]])
+       , "newPickle" <+> fromString (show tip) ]])
 

@@ -1,0 +1,46 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           beam-migrate-cli-engine
+version:        0.0.0
+description:    "beam-migrate-cli-engine" contains the core functionality of the "beam-migrate-cli" library. This is meant to be embedded in end-user applications that need to use "beam-migrate-cli" functionality, but don't need the whole command line tooling.
+                The interface here is considered highly volatile. Most usage should be via "beam-migrate-cli"'s @pickle@ command, with which this library will always be compatible.
+build-type:     Simple
+
+library
+  exposed-modules:
+      Database.Beam.Migrate.Cli.Engine
+      Database.Beam.Migrate.Cli.Engine.Internal
+      Database.Beam.Migrate.Cli.Engine.Migrate
+  other-modules:
+      Database.Beam.Migrate.Cli.Engine.Database
+      Database.Beam.Migrate.Cli.Engine.Database.Migrations
+  default-extensions:
+      TemplateHaskell
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      DeriveAnyClass
+      StandaloneDeriving
+      FlexibleInstances
+      FlexibleContexts
+      TypeFamilies
+      DeriveGeneric
+      ConstraintKinds
+      MultiParamTypeClasses
+      RankNTypes
+      TypeApplications
+      ScopedTypeVariables
+  build-depends:
+      base
+    , beam-core
+    , beam-migrate
+    , containers
+    , fgl
+    , lens
+    , text
+    , time
+    , vector
+  default-language: Haskell2010

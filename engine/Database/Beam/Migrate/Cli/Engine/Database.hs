@@ -7,13 +7,15 @@ module Database.Beam.Migrate.Cli.Engine.Database where
 import           Database.Beam
 import           Database.Beam.Backend (BeamBackend, BeamSqlBackend, BeamSqlBackendSupportsDataType, SqlNull)
 import           Database.Beam.Backend.SQL (HasSqlValueSyntax (..))
-import           Database.Beam.Migrate.Cli.Engine.Registry (MigrationName, BranchName)
-import           Database.Beam.Schema.Tables (dbEntityName)
 import           Database.Beam.Migrate ( CheckedDatabaseSettings, defaultMigratableDbSettings
                                        , renameCheckedEntity, modifyCheckedTable, checkedTableModification
                                        , checkedFieldNamed, BeamMigrateSqlBackend, HasDataTypeCreatedCheck
                                        , BeamMigrateSqlBackendDataTypeSyntax, HasDefaultSqlDataType (..)
-                                       , CheckedDatabaseEntity (..), CheckedDatabaseEntityDescriptor)
+                                       , CheckedDatabaseEntity (..), CheckedDatabaseEntityDescriptor
+                                       , SomeDatabasePredicate(..), TableExistsPredicate(..)
+                                       , QualifiedName(..) )
+import           Database.Beam.Migrate.Backend (BeamMigrationBackend(..))
+import           Database.Beam.Schema.Tables (dbEntityName, dbEntityDescriptor, dbEntitySchema)
 
 import           Control.Lens (makeLenses, (&), (.~), Lens', (^.))
 import           Control.Monad (join)
@@ -24,8 +26,21 @@ import           Data.Proxy (Proxy(..))
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Time (LocalTime)
+import           Data.Time (ZonedTime(zonedTimeToLocalTime), getZonedTime)
 
 import           Text.Read (readMaybe)
+
+newtype MigrationName = MigrationName Text deriving (Show, Eq, Ord)
+deriving newtype instance HasSqlValueSyntax be Text => HasSqlValueSyntax be MigrationName
+deriving newtype instance (BeamBackend be, FromBackendRow be Text) => FromBackendRow be MigrationName
+deriving newtype instance HasDefaultSqlDataType be Text => HasDefaultSqlDataType be MigrationName
+deriving newtype instance (BeamSqlBackend be,  HasSqlEqualityCheck be Text) => HasSqlEqualityCheck be MigrationName
+
+newtype BranchName = BranchName Text
+    deriving (Show, Eq)
+deriving newtype instance HasSqlValueSyntax be Text => HasSqlValueSyntax be BranchName
+deriving newtype instance (BeamBackend be, FromBackendRow be Text) => FromBackendRow be BranchName
+deriving newtype instance HasDefaultSqlDataType be Text => HasDefaultSqlDataType be BranchName
 
 data BeamMigrateAction
     = Apply | Revert | System
@@ -124,3 +139,49 @@ getNextEntryId migrateDb =
     runSelectReturningOne $ select $
     aggregate_ (\l -> maybe_ 0 (\x -> x + val_ 1) (max_ (l ^. bmlId))) $
     all_ (_bmdbLog migrateDb)
+
+migrateTableExistsPredicate :: BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb -> SomeDatabasePredicate
+migrateTableExistsPredicate BeamMigrationBackend {} db =
+    SomeDatabasePredicate $
+    TableExistsPredicate (QualifiedName (db ^. bmdbLog . dbEntityDescriptor . dbEntitySchema)
+                                        (db ^. bmdbLog . dbEntityDescriptor . dbEntityName))
+
+getLastBeamMigrateVersion' :: HasSqlEqualityCheck be Text
+                           => BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb -> m (Maybe Int32)
+getLastBeamMigrateVersion' BeamMigrationBackend {} migrateDb =
+  runSelectReturningOne $
+    select $ fmap (\l -> l ^. bmlMigrateVersion) $
+    orderBy_ (\l -> desc_ (l ^. bmlId)) $
+    filter_ (\l -> l ^. bmlAction ==. val_ System) $
+    all_ (_bmdbLog migrateDb) -- Not using orderedLogEntries on  purpose
+
+insertBeamMigrationVersion :: MonadIO m => BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb
+                           -> Text -> Int32 -> m (SqlInsert be BeamMigrateLogT)
+insertBeamMigrationVersion BeamMigrationBackend {} migrateDb user version = do
+  today <- zonedTimeToLocalTime <$> liftIO getZonedTime
+  entryId <- getNextEntryId migrateDb
+  pure (insert (migrateDb ^. bmdbLog)
+       $ insertExpressions
+        [ BeamMigrateLog { _bmlId = val_ entryId
+                         , _bmlName = val_ (MigrationName "beam-migrate")
+                         , _bmlBranch = nothing_
+                         , _bmlAction = val_ System
+                         , _bmlUser = val_ user
+                         , _bmlDate = val_ today
+                         , _bmlNote = val_ ""
+                         , _bmlMigrateHash = nothing_
+                         , _bmlMigrateVersion = val_ version } ])
+
+listAllAppliedMigrations :: HasSqlEqualityCheck be Text
+  => BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb -> m [MigrationName]
+listAllAppliedMigrations BeamMigrationBackend{} migrateDb =
+    runSelectReturningList $ select $ nub_ $ do
+      entry <- all_ (logEntries migrateDb)
+      guard_ $ entry ^. bmlAction ==. val_ Apply
+      guard_ $ not_ $ exists_ $ do
+        reversionEntry <- all_ (logEntries migrateDb)
+        guard_ (reversionEntry ^. bmlId >. entry ^. bmlId &&.
+                reversionEntry ^. bmlName ==. entry ^. bmlName &&.
+                reversionEntry ^. bmlAction ==. val_ Revert)
+        pure reversionEntry
+      pure (entry ^. bmlName)

@@ -1,0 +1,134 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           beam-migrate-cli
+version:        0.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Database.Beam.Migrate.Cli
+  other-modules:
+      Database.Beam.Migrate.Cli.Types
+      Database.Beam.Migrate.Cli.Registry
+      Database.Beam.Migrate.Cli.VC
+      Database.Beam.Migrate.Cli.Commands.Abort
+      Database.Beam.Migrate.Cli.Commands.Add
+      Database.Beam.Migrate.Cli.Commands.Commit
+      Database.Beam.Migrate.Cli.Commands.Common
+      Database.Beam.Migrate.Cli.Commands.Diff
+      Database.Beam.Migrate.Cli.Commands.Edit
+      Database.Beam.Migrate.Cli.Commands.Log
+      Database.Beam.Migrate.Cli.Commands.ManageDb
+      Database.Beam.Migrate.Cli.Commands.Migrate
+      Database.Beam.Migrate.Cli.Commands.Pickle
+      Database.Beam.Migrate.Cli.Commands.Status
+      Database.Beam.Migrate.Cli.Commands.Verify
+      Database.Beam.Migrate.Cli.Message
+  default-extensions:
+      GADTs
+      ScopedTypeVariables
+      TemplateHaskell
+      RankNTypes
+      LambdaCase
+      DeriveAnyClass
+      KindSignatures
+      DeriveGeneric
+      MultiParamTypeClasses
+      FlexibleContexts
+      FlexibleInstances
+      TypeFamilies
+      ConstraintKinds
+      StandaloneDeriving
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      TypeApplications
+      TypeOperators
+      TupleSections
+      ViewPatterns
+  build-depends:
+      aeson
+    , base
+    , beam-core
+    , beam-migrate
+    , beam-migrate-cli-engine
+    , bytestring
+    , containers
+    , cryptonite
+    , directory
+    , editor-open
+    , fgl
+    , filepath
+    , lens
+    , memory
+    , mtl
+    , optparse-applicative
+    , prettyprinter
+    , prettyprinter-ansi-terminal
+    , process
+    , text
+    , time
+    , unix
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+
+executable beam-migrate-cli-test
+  main-is: Pagila.hs
+  other-modules:
+      Paths_beam_migrate_cli
+  hs-source-dirs:
+      example
+  default-extensions:
+      GADTs
+      ScopedTypeVariables
+      TemplateHaskell
+      RankNTypes
+      LambdaCase
+      DeriveAnyClass
+      KindSignatures
+      DeriveGeneric
+      MultiParamTypeClasses
+      FlexibleContexts
+      FlexibleInstances
+      TypeFamilies
+      ConstraintKinds
+      StandaloneDeriving
+      DerivingStrategies
+      GeneralizedNewtypeDeriving
+      TypeApplications
+      TypeOperators
+      TupleSections
+      ViewPatterns
+  build-depends:
+      aeson
+    , base
+    , beam-core
+    , beam-migrate
+    , beam-migrate-cli
+    , beam-migrate-cli-engine
+    , beam-sqlite
+    , bytestring
+    , containers
+    , cryptonite
+    , directory
+    , editor-open
+    , fgl
+    , filepath
+    , lens
+    , memory
+    , mtl
+    , optparse-applicative
+    , prettyprinter
+    , prettyprinter-ansi-terminal
+    , process
+    , sqlite-simple
+    , text
+    , time
+    , unix
+    , unordered-containers
+    , vector
+  default-language: Haskell2010

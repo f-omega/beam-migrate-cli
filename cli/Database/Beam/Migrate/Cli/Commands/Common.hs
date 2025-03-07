@@ -315,20 +315,10 @@ getLatestLogEntry ctx = do
 
 collectAppliedMigrations :: BeamMigrateContext -> IO [MigrationName]
 collectAppliedMigrations ctx = do
-  BeamDatabaseRunner { bdbrBackend = BeamMigrationBackend {}
+  BeamDatabaseRunner { bdbrBackend = be@BeamMigrationBackend {}
                      , bdbrRun = run, bdbrMigrateDb = migrateDb' } <- getRunner ctx
   let migrateDb = queryableMigrateDb migrateDb'
-  dieOnDdlError ctx $ run $
-    runSelectReturningList $ select $ nub_ $ do
-      entry <- all_ (logEntries migrateDb)
-      guard_ $ entry ^. bmlAction ==. val_ Apply
-      guard_ $ not_ $ exists_ $ do
-        reversionEntry <- all_ (logEntries migrateDb)
-        guard_ (reversionEntry ^. bmlId >. entry ^. bmlId &&.
-                reversionEntry ^. bmlName ==. entry ^. bmlName &&.
-                reversionEntry ^. bmlAction ==. val_ Revert)
-        pure reversionEntry
-      pure (entry ^. bmlName)
+  dieOnDdlError ctx $ run $ listAllAppliedMigrations be migrateDb
 
 newtype BeamMigrateT be m a
     = BeamMigrateT (ReaderT (BeamMigratePayload be m) m a)

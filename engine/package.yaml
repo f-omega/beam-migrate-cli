@@ -18,6 +18,7 @@ dependencies:
   - time
   - fgl
   - vector
+  - containers
 
 default-extensions:
   - TemplateHaskell
@@ -39,7 +40,7 @@ library:
   exposed-modules:
     - Database.Beam.Migrate.Cli.Engine
     - Database.Beam.Migrate.Cli.Engine.Internal
+    - Database.Beam.Migrate.Cli.Engine.Migrate
   other-modules:
-    - Database.Beam.Migrate.Cli.Engine.Types
     - Database.Beam.Migrate.Cli.Engine.Database
     - Database.Beam.Migrate.Cli.Engine.Database.Migrations

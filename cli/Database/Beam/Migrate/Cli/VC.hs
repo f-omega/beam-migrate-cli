@@ -1,7 +1,8 @@
 module Database.Beam.Migrate.Cli.VC where
 
-import           Database.Beam.Migrate.Cli.Types
+import           Database.Beam.Migrate.Cli.Engine.Internal
 import           Database.Beam.Migrate.Cli.Registry
+import           Database.Beam.Migrate.Cli.Types
 
 import           Control.Exception (SomeException(..), catch)
 

@@ -4,6 +4,7 @@ module Database.Beam.Migrate.Cli.Message
     ( module Database.Beam.Migrate.Cli.Message
     , module Prettyprinter ) where
 
+import Database.Beam.Migrate.Cli.Engine.Internal
 import Database.Beam.Migrate.Cli.Registry
 
 import Prettyprinter hiding (Pretty(..))

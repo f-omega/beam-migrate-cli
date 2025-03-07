@@ -34,7 +34,7 @@ import           Database.Beam.Migrate.Cli.Commands.Migrate (beamMigrateMigrate)
 import           Database.Beam.Migrate.Cli.Commands.Pickle (beamMigratePickle)
 import           Database.Beam.Migrate.Cli.Commands.Status (beamMigrateStatus)
 import           Database.Beam.Migrate.Cli.Commands.Verify (beamMigrateVerify)
-import           Database.Beam.Migrate.Cli.Engine.Internal (BeamMigrateDb, BeamMigrateCliBackend, beamMigrateDb)
+import           Database.Beam.Migrate.Cli.Engine.Internal (BeamMigrateDb, BeamMigrateCliBackend, beamMigrateDb, MigrationName(..), BranchName(..))
 
 import           Control.Monad (when)
 import           Data.IORef (newIORef, readIORef)
@@ -202,7 +202,8 @@ cliOptsParser bm =
                                    pure SelectAllBackends)
                               <*> (flag' IncludeWorking (long "lax" <> help "Include uncommitted migrations") <|>
                                    flag' CommittedOnly (long "strict" <> help "Enforce that each branch not be at an uncommitted migration") <|>
-                                   pure LastCommit))
+                                   pure LastCommit)
+                              <*> optional (BranchName . fromString <$> strOption (long "tip" <> metavar "TIP" <> help "Branch to use as the latest")))
 
 beamMigrateCli :: BeamMigrateOptions -> IO ()
 beamMigrateCli opts = do

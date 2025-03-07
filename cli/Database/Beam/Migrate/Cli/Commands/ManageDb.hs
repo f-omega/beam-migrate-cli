@@ -4,7 +4,7 @@ module Database.Beam.Migrate.Cli.Commands.ManageDb where
 
 import           Database.Beam
 import           Database.Beam.Backend.SQL (insertCmd)
-import           Database.Beam.Migrate (SomeDatabasePredicate(..), TableExistsPredicate (..), IsCheckedDatabaseEntity (unChecked), QualifiedName (..))
+import           Database.Beam.Migrate (SomeDatabasePredicate(..), TableExistsPredicate (..), IsCheckedDatabaseEntity (unChecked), QualifiedName (..), unCheckDatabase)
 import           Database.Beam.Migrate.Backend (BeamMigrationBackend(..), DdlError)
 import           Database.Beam.Migrate.Cli.Commands.Common
 import           Database.Beam.Migrate.Cli.Engine.Internal
@@ -22,8 +22,6 @@ import           Data.Int (Int32)
 import           Data.Maybe (isJust)
 import           Data.String (fromString)
 import qualified Data.Text as T
-import           Data.Time (ZonedTime(zonedTimeToLocalTime), getZonedTime)
-
 
 beamMigrateManageDb :: BeamMigrateContext -> ManageDb -> IO ()
 beamMigrateManageDb ctx cmd =
@@ -50,8 +48,6 @@ beamMigrateInitDb ctx cmd = do
                   then hushDdlError ctx (getLastBeamMigrateVersion ctx)
                   else pure Nothing
 
-  today <- zonedTimeToLocalTime <$> getZonedTime
-
   let repair = beamMigrateRepairDb ctx cmd
       migrateFrom v =
           let migrations = getMigrationsFrom be migrateDb (fromIntegral v)
@@ -71,22 +67,11 @@ beamMigrateInitDb ctx cmd = do
                   liftIO (beamMigrateMessage ctx (indent 2 "---"))
 
           in dieOnDdlError ctx $ run $ do
-               forM_ (zip [v..] migrations) $ \(i, next) ->
+               forM_ migrations $ \(i, next) ->
                    let from = max 0 (i - 1)
                    in runSql from i next
-               entryId <- getNextEntryId migrateDb
-               let insertVersion = insert (migrateDb ^. bmdbLog)
-                                   $ insertExpressions
-                                   [ BeamMigrateLog { _bmlId = val_ entryId
-                                                    , _bmlName = val_ (MigrationName "beam-migrate")
-                                                    , _bmlBranch = nothing_
-                                                    , _bmlAction = val_ System
-                                                    , _bmlUser = val_ "" -- TODO
-                                                    , _bmlDate = val_ today
-                                                    , _bmlNote = val_ ""
-                                                    , _bmlMigrateHash = nothing_
-                                                    , _bmlMigrateVersion = val_ beamMigrateDbCurrentVersion } ]
-                   insertVersionCmd = case insertVersion of
+               insertVersion <- insertBeamMigrationVersion be migrateDb "" {- TODO user -} beamMigrateDbCurrentVersion
+               let insertVersionCmd = case insertVersion of
                                         SqlInsert _ i -> insertCmd i
                                         _ -> error "impossible"
                whenVerbose ctx $ liftIO (beamMigrateMessage ctx (fromString (renderSyntax insertVersionCmd)))
@@ -122,9 +107,8 @@ migrateTableExists :: BeamMigrateContext -> [SomeDatabasePredicate] -> Bool
 migrateTableExists ctx ps =
     case ctx ^. bmcRunner of
       Just BeamDatabaseRunner { bdbrMigrateDb = BeamMigrateDbCheckable b
-                              , bdbrBackend = BeamMigrationBackend {} } ->
-          not (SomeDatabasePredicate (TableExistsPredicate (QualifiedName (b ^. bmdbLog . checkedEntityDescriptor . unChecked . dbEntitySchema)
-                                                                          (b ^. bmdbLog . checkedEntityDescriptor . unChecked . dbEntityName))) `elem` ps)
+                              , bdbrBackend = be@BeamMigrationBackend {} } ->
+          not (migrateTableExistsPredicate be (unCheckDatabase b) `elem` ps)
 
       Just _ -> True
       Nothing -> noDatabaseError ctx
@@ -132,14 +116,10 @@ migrateTableExists ctx ps =
 getLastBeamMigrateVersion :: BeamMigrateContext -> IO (Either DdlError (Maybe Int32))
 getLastBeamMigrateVersion ctx = do
   BeamDatabaseRunner { bdbrMigrateDb = migrateDb'
-                     , bdbrBackend = BeamMigrationBackend {}
+                     , bdbrBackend = be@BeamMigrationBackend {}
                      , bdbrRun = run } <- getRunner ctx
   let migrateDb = queryableMigrateDb migrateDb'
-  run $ runSelectReturningOne $
-    select $ fmap (\l -> l ^. bmlMigrateVersion) $
-    orderBy_ (\l -> desc_ (l ^. bmlId)) $
-    filter_ (\l -> l ^. bmlAction ==. val_ System) $
-    all_ (_bmdbLog migrateDb) -- Not using orderedLogEntries on  purpose
+  run $ getLastBeamMigrateVersion' be migrateDb
 
 showDatabaseStatus :: BeamMigrateContext -> Bool -> IO ()
 showDatabaseStatus ctx forceDb = do

@@ -6,8 +6,8 @@ import Database.Beam
 import Database.Beam.Migrate
 import Database.Beam.Migrate (defaultMigratableDbSettings, BeamMigrateSqlBackend, HasDataTypeCreatedCheck, BeamMigrateSqlBackendDataTypeSyntax)
 import Database.Beam.Migrate.Backend
-import Database.Beam.Migrate.Cli.Engine.Internal (BeamMigrateDb)
-import Database.Beam.Migrate.Cli.Registry (Registry, MigrationName, BranchName)
+import Database.Beam.Migrate.Cli.Engine.Internal (BeamMigrateDb, MigrationName, BranchName)
+import Database.Beam.Migrate.Cli.Registry (Registry)
 import Database.Beam.Migrate.Types (CheckedDatabaseSettings)
 
 import Control.Exception (Exception)
@@ -231,6 +231,7 @@ data PickleCmd
     , _pickleBackends :: !BackendSelector
     -- ^ Which backends to choose
     , _pickleBranchStatus :: !BranchStatusSelector
+    , _pickleTip :: Maybe BranchName
     } deriving Show
 
 data CliCommand

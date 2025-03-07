@@ -8,6 +8,7 @@ import           Database.Beam
 import           Database.Beam.Backend (HasSqlValueSyntax, BeamBackend)
 import           Database.Beam.Backend.SQL (BeamSqlBackend)
 import           Database.Beam.Migrate (HasDefaultSqlDataType)
+import           Database.Beam.Migrate.Cli.Engine.Internal (BranchName(..), MigrationName(..), findTips, findLastCommonDominator)
 
 import           Control.Exception (Exception, throwIO, throw)
 import           Control.Lens (makeLenses, (^..), each, (^.), makePrisms, (&), (%~), to, (.~), Lens', ix, (^?), toListOf)
@@ -121,12 +122,6 @@ data RegEntry
     | RegEntryRoot
       deriving Show
 
-newtype MigrationName = MigrationName Text deriving (Show, Eq, Ord)
-deriving newtype instance HasSqlValueSyntax be Text => HasSqlValueSyntax be MigrationName
-deriving newtype instance (BeamBackend be, FromBackendRow be Text) => FromBackendRow be MigrationName
-deriving newtype instance HasDefaultSqlDataType be Text => HasDefaultSqlDataType be MigrationName
-deriving newtype instance (BeamSqlBackend be,  HasSqlEqualityCheck be Text) => HasSqlEqualityCheck be MigrationName
-
 data MigrationInfo
     = MigrationInfo
     { _miName :: !MigrationName
@@ -158,12 +153,6 @@ updateOrCreateBranchStatus miInfo sts =
         stss'' | found = stss'
                | otherwise = sts:stss'
     in miInfo { _miBranchStatus = stss'' }
-
-newtype BranchName = BranchName Text
-    deriving (Show, Eq)
-deriving newtype instance HasSqlValueSyntax be Text => HasSqlValueSyntax be BranchName
-deriving newtype instance (BeamBackend be, FromBackendRow be Text) => FromBackendRow be BranchName
-deriving newtype instance HasDefaultSqlDataType be Text => HasDefaultSqlDataType be BranchName
 
 data CommitStatus
     = Committed
@@ -400,10 +389,11 @@ formatMigrationInfo mi =
 -- (i.e., those that have not been superseded).
 migrationTips :: Registry -> [MigrationName] -> [MigrationName]
 migrationTips reg migrations =
-    let migrationIxs = map (flip lookupMigrationIndexNoFail reg) migrations
-        subgraph = Gr.nfilter (\n -> n `elem` migrationIxs) (reg ^. regGraph)
-        tips = map (\(i, _) -> (reg ^. regLines) `V.unsafeIndex` i) $
-               filter (\(n, _) -> Gr.outdeg subgraph n == 0) (Gr.labNodes subgraph)
+    let tips = map (V.unsafeIndex (reg ^. regLines)) (findTips (reg ^. regGraph) migrationIxs)
+        migrationIxs = map (flip lookupMigrationIndexNoFail reg) migrations
+--        subgraph = Gr.nfilter (\n -> n `elem` migrationIxs) (reg ^. regGraph)
+--        tips = map (\(i, _) -> (reg ^. regLines) `V.unsafeIndex` i) $
+--               filter (\(n, _) -> Gr.outdeg subgraph n == 0) (Gr.labNodes subgraph)
     in tips ^.. each . _RegEntryMigration . miName
 
 dominatorForTips :: Registry -> [MigrationName] -> Maybe MigrationName
@@ -411,19 +401,7 @@ dominatorForTips reg migrations =
     let migrationIxs = map (flip lookupMigrationIndexNoFail reg) migrations
 
         domGraph = regDomGraph reg
-
-        paths = map (\to -> fromMaybe (error "Internal") (Gr.sp 0 to domGraph)) migrationIxs
-
-        lca answer paths =
-          case paths of
-            (a:t):nexts'
-               | all matches nexts' ->
-                   lca (succ answer) (t:map tail nexts')
-               where matches (a':_) = a == a'
-                     matches _ = False
-            _ -> answer
-
-        domIx = lca 0 paths
+        domIx = fromMaybe (error "internal") (findLastCommonDominator domGraph 0 migrationIxs)
     in reg ^? regLines . ix domIx . _RegEntryMigration . miName
 
 regDomGraph :: Registry -> Gr.Gr () Int

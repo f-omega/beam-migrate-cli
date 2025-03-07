@@ -25,13 +25,13 @@ beamMigrateDbCurrentVersion :: Int32
 beamMigrateDbCurrentVersion = 1
 
 getMigrationsFrom :: forall be m
-                   . HasDefaultSxqlDataType be LocalTime
+                   . HasDefaultSqlDataType be LocalTime
                   => BeamMigrationBackend be m
                   -> DatabaseSettings be BeamMigrateDb
-                  -> Int -> [[BeamSqlBackendSyntax be]]
-getMigrationsFrom (BeamMigrationBackend {}) migrateDb n = drop n migrations
+                  -> Int32 -> [(Int32, [BeamSqlBackendSyntax be])]
+getMigrationsFrom (BeamMigrationBackend {}) migrateDb n = drop (fromIntegral n) migrations
   where
-    migrations = [ migration1 ]
+    migrations = zip [1..] [migration1]
 
     migration1 :: [ BeamSqlBackendSyntax be ]
     migration1 = [ createTableCmd $

@@ -46,6 +46,7 @@ default-extensions:
   - TypeApplications
   - TypeOperators
   - TupleSections
+  - ViewPatterns
 
 library:
   exposed-modules:
