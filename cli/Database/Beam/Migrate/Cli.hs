@@ -13,7 +13,7 @@ import           Control.Exception (Exception, throwIO, catches, Handler(..), br
 import           Control.Lens (makeLenses, (^.), (%~))
 import           Control.Monad.Trans (MonadIO)
 
-import           Database.Beam (MonadBeam, DatabaseSettings, HasSqlEqualityCheck)
+import           Database.Beam (MonadBeam, DatabaseSettings, HasSqlEqualityCheck, Database)
 import           Database.Beam.Migrate (CheckedDatabaseSettings, HasDefaultSqlDataType)
 import           Database.Beam.Migrate.Backend
 import           Database.Beam.Migrate.Cli.Commands.Common
@@ -229,7 +229,7 @@ beamMigrateCli opts = do
     excHandlers ctx = [ Handler (\(BeamMigrateError e) -> beamMigrateMessage ctx (errorMessage "Error: " <> e)) ]
 
 registerBackendWithCustomBeamMigrateDbUnchecked
-    :: (HasSqlEqualityCheck be T.Text, MonadIO m, HasDefaultSqlDataType be LocalTime)
+    :: (HasSqlEqualityCheck be T.Text, MonadIO m, HasDefaultSqlDataType be LocalTime, Database be db)
     => BeamMigrationBackend be m -> CheckedDatabaseSettings be db
     -> DatabaseSettings be BeamMigrateDb
     -> BeamMigrateOptions -> BeamMigrateOptions
@@ -237,7 +237,7 @@ registerBackendWithCustomBeamMigrateDbUnchecked be db beamMigrateDb =
     beamMigrateBackends %~ (SomeCliMigrationBackend be db (BeamMigrateDbUncheckable beamMigrateDb):)
 
 registerBackendWithCustomBeamMigrateDb
-    :: (HasSqlEqualityCheck be T.Text, MonadIO m, HasDefaultSqlDataType be LocalTime)
+    :: (HasSqlEqualityCheck be T.Text, MonadIO m, HasDefaultSqlDataType be LocalTime, Database be db)
     => BeamMigrationBackend be m -> CheckedDatabaseSettings be db
     -> CheckedDatabaseSettings be BeamMigrateDb
     -> BeamMigrateOptions -> BeamMigrateOptions
@@ -247,7 +247,7 @@ registerBackendWithCustomBeamMigrateDb be db beamMigrateDb =
 registerBackend :: ( HasSqlEqualityCheck be T.Text
                    , BeamMigrateCliBackend be
                    , HasDefaultSqlDataType be LocalTime
-                   , MonadIO m )
+                   , MonadIO m, Database be db )
                 => BeamMigrationBackend be m -> CheckedDatabaseSettings be db
                 -> BeamMigrateOptions -> BeamMigrateOptions
 registerBackend be db = registerBackendWithCustomBeamMigrateDb be db beamMigrateDb

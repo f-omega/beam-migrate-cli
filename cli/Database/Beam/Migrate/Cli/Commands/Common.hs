@@ -414,6 +414,9 @@ readDbPoint ctx
 
 data DbSourceEnum
     = DbSourceDatabase
+      -- ^ The database connected to
+    | DbSourceSchema
+      -- ^ The expected schema of the database connected to
     | DbSourceMigration !MigrationName !RelTime
     | DbSourceBranch !BranchName
     | DbSourceConn !BeamDatabaseRunner
@@ -432,6 +435,7 @@ closeDbSource _ _ = pure ()
 parseDbSource :: BeamMigrateContext -> DbSource -> IO DbSourceEnum
 parseDbSource ctx (DbSource src)
   | src == "0" = pure DbSourceEmpty
+  | src == "SCHEMA" = pure DbSourceSchema
   | Just rem <- T.stripPrefix "DB" src =
       if T.null rem
       then pure DbSourceDatabase
@@ -523,6 +527,9 @@ readDatabasePointFromSource ctx (DbSourceMigration nm tm) = do
     Before -> pure (sch ^. msStartingSchema)
 readDatabasePointFromSource ctx (DbSourceConn db) = readDbPoint ctx db
 readDatabasePointFromSource _ DbSourceEmpty = pure (DatabasePoint mempty)
+readDatabasePointFromSource ctx DbSourceSchema = do
+  BeamDatabaseRunner { bdbrDatabase = schemaModel } <- getRunner ctx
+  pure (DatabasePoint (collectChecks schemaModel))
 
 getMigrationFromDbSource :: BeamMigrateContext -> DbSourceEnum -> IO (Maybe MigrationName)
 getMigrationFromDbSource ctx (DbSourceBranch nm) = do

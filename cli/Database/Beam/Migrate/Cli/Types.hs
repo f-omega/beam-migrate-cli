@@ -27,16 +27,17 @@ data BeamMigrateError
 
 data BeamDatabaseRunner where
     BeamDatabaseRunner
-        :: (MonadIO m, HasSqlEqualityCheck be Text, HasDefaultSqlDataType be LocalTime)
+        :: (MonadIO m, HasSqlEqualityCheck be Text, HasDefaultSqlDataType be LocalTime, Database be db)
         => { bdbrBackend :: BeamMigrationBackend be m
-           , bdbrDatabase ::CheckedDatabaseSettings be db
+           , bdbrDatabase :: CheckedDatabaseSettings be db
            , bdbrMigrateDb :: BeamMigrateDbSettings be
            , bdbrRun :: (forall a. m a -> IO (Either DdlError a))
            , bdbrClose :: IO ()
            } -> BeamDatabaseRunner
 
 data SomeCliMigrationBackend where
-    SomeCliMigrationBackend :: (HasSqlEqualityCheck be Text, MonadIO m, HasDefaultSqlDataType be LocalTime)
+    SomeCliMigrationBackend :: ( HasSqlEqualityCheck be Text, MonadIO m, HasDefaultSqlDataType be LocalTime
+                               , Database be db )
                             => BeamMigrationBackend be m -> CheckedDatabaseSettings be db
                             -> BeamMigrateDbSettings be
                             -> SomeCliMigrationBackend
