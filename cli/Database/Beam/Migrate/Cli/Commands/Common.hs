@@ -8,7 +8,7 @@ import           Database.Beam
 import           Database.Beam.Backend (BeamSqlBackendSyntax)
 import           Database.Beam.Migrate (SomeDatabasePredicate(..), serializePredicate, DatabasePredicate (englishDescription, predicateCascadesDropOn), collectChecks)
 import           Database.Beam.Migrate.Backend (DdlError, BeamMigrationBackend (..), BeamMigrateConnection (..), SomeBeamMigrationBackend (..))
-import           Database.Beam.Migrate.Cli.Database
+import           Database.Beam.Migrate.Cli.Engine.Internal
 import           Database.Beam.Migrate.Cli.Message
 import           Database.Beam.Migrate.Cli.Registry
 import           Database.Beam.Migrate.Cli.Types hiding (Revert)

@@ -4,6 +4,7 @@ dependencies:
   - base
   - beam-core
   - beam-migrate
+  - beam-migrate-cli-engine
   - editor-open
   - lens
   - optparse-applicative
@@ -53,8 +54,6 @@ library:
     - Database.Beam.Migrate.Cli.Types
     - Database.Beam.Migrate.Cli.Registry
     - Database.Beam.Migrate.Cli.VC
-    - Database.Beam.Migrate.Cli.Database
-    - Database.Beam.Migrate.Cli.Database.Migrations
     - Database.Beam.Migrate.Cli.Commands.Abort
     - Database.Beam.Migrate.Cli.Commands.Add
     - Database.Beam.Migrate.Cli.Commands.Commit

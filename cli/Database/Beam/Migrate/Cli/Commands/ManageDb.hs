@@ -7,8 +7,7 @@ import           Database.Beam.Backend.SQL (insertCmd)
 import           Database.Beam.Migrate (SomeDatabasePredicate(..), TableExistsPredicate (..), IsCheckedDatabaseEntity (unChecked), QualifiedName (..))
 import           Database.Beam.Migrate.Backend (BeamMigrationBackend(..), DdlError)
 import           Database.Beam.Migrate.Cli.Commands.Common
-import           Database.Beam.Migrate.Cli.Database
-import           Database.Beam.Migrate.Cli.Database.Migrations
+import           Database.Beam.Migrate.Cli.Engine.Internal
 import           Database.Beam.Migrate.Cli.Message
 import           Database.Beam.Migrate.Cli.Registry
 import           Database.Beam.Migrate.Cli.Types hiding (Revert)

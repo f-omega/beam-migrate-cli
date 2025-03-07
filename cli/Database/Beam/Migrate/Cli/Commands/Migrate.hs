@@ -8,7 +8,7 @@ import Database.Beam.Migrate.Cli.Commands.Common
 import Database.Beam.Migrate.Cli.Message
 import Database.Beam.Migrate.Cli.Registry
 import Database.Beam.Migrate.Cli.Types
-import Database.Beam.Migrate.Cli.Database
+import Database.Beam.Migrate.Cli.Engine.Internal
 import Database.Beam.Query.CustomSQL
 
 import Control.Exception (SomeException(..), Exception, handle, throwIO, catch)
@@ -19,8 +19,6 @@ import Control.Monad.Trans (lift)
 import Data.Time
 import Data.Maybe (maybeToList)
 import Data.String (fromString)
-import Database.Beam.Migrate.Cli.Database.Migrations (beamMigrateDbCurrentVersion)
-
 
 data DontCommit = DontCommit deriving Show
 instance Exception DontCommit

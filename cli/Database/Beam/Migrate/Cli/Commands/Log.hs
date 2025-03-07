@@ -5,7 +5,7 @@ module Database.Beam.Migrate.Cli.Commands.Log where
 import           Database.Beam
 import           Database.Beam.Migrate.Backend
 import           Database.Beam.Migrate.Cli.Commands.Common
-import           Database.Beam.Migrate.Cli.Database
+import           Database.Beam.Migrate.Cli.Engine.Internal
 import           Database.Beam.Migrate.Cli.Message
 import           Database.Beam.Migrate.Cli.Registry
 import           Database.Beam.Migrate.Cli.Types hiding (CliCommand(..))

@@ -2,12 +2,12 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Database.Beam.Migrate.Cli.Database where
+module Database.Beam.Migrate.Cli.Engine.Database where
 
 import           Database.Beam
 import           Database.Beam.Backend (BeamBackend, BeamSqlBackend, BeamSqlBackendSupportsDataType, SqlNull)
 import           Database.Beam.Backend.SQL (HasSqlValueSyntax (..))
-import           Database.Beam.Migrate.Cli.Registry (MigrationName, BranchName)
+import           Database.Beam.Migrate.Cli.Engine.Registry (MigrationName, BranchName)
 import           Database.Beam.Schema.Tables (dbEntityName)
 import           Database.Beam.Migrate ( CheckedDatabaseSettings, defaultMigratableDbSettings
                                        , renameCheckedEntity, modifyCheckedTable, checkedTableModification

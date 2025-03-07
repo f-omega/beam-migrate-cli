@@ -34,7 +34,7 @@ import           Database.Beam.Migrate.Cli.Commands.Migrate (beamMigrateMigrate)
 import           Database.Beam.Migrate.Cli.Commands.Pickle (beamMigratePickle)
 import           Database.Beam.Migrate.Cli.Commands.Status (beamMigrateStatus)
 import           Database.Beam.Migrate.Cli.Commands.Verify (beamMigrateVerify)
-import           Database.Beam.Migrate.Cli.Database (BeamMigrateDb, BeamMigrateCliBackend, beamMigrateDb)
+import           Database.Beam.Migrate.Cli.Engine.Internal (BeamMigrateDb, BeamMigrateCliBackend, beamMigrateDb)
 
 import           Control.Monad (when)
 import           Data.IORef (newIORef, readIORef)

@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Database.Beam.Migrate.Cli.Database.Migrations where
+module Database.Beam.Migrate.Cli.Engine.Database.Migrations where
 
 import Database.Beam
 import Database.Beam.Backend.SQL
 import Database.Beam.Migrate
 import Database.Beam.Migrate.Backend
-import Database.Beam.Migrate.Cli.Database
-import Database.Beam.Migrate.Cli.Types
+import Database.Beam.Migrate.Cli.Engine.Database
+--import Database.Beam.Migrate.Cli.Types
 import Database.Beam.Schema.Tables
 import Database.Beam.Query.Adhoc
 
