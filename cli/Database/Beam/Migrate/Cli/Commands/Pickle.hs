@@ -10,12 +10,16 @@ import           Database.Beam.Migrate.Cli.Types
 
 import           Control.Lens ((^.))
 
+import           Data.Graph.Inductive.PatriciaTree (Gr)
 import qualified Data.Map.Strict as M
 import           Data.Maybe (fromMaybe)
 import           Data.String (fromString)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Data.Traversable (forM)
+
+import           Debug.Trace
+import Data.Graph.Inductive (dfs)
 
 beamMigratePickle :: BeamMigrateContext -> PickleCmd -> IO ()
 beamMigratePickle ctx cmd = do
@@ -40,22 +44,27 @@ beamMigratePickle ctx cmd = do
             _ -> getLatestCommittedMigration ctx
 
   -- For each branch, get the latest migration. Error out if there's a working migration
-  migrations <- fmap mconcat $
-                forM branches $ \branch -> do
-                   mMig <- getMigration branch
-                   case mMig of
-                     Nothing
-                         | selective, CommittedOnly <- cmd ^. pickleBranchStatus
-                            -> beamMigrateError ctx ("Branch " <> pretty branch <> " has no migrations")
-                         | otherwise -> pure []
-                     Just (mig, _) -> pure [mig]
+  migrations <-
+    fmap mconcat $
+    forM branches $ \branch -> do
+       mMig <- getMigration branch
+       case mMig of
+         Nothing
+             | selective, CommittedOnly <- cmd ^. pickleBranchStatus
+                -> beamMigrateError ctx ("Branch " <> pretty branch <> " has no migrations")
+             | otherwise -> pure []
+         Just (mig, _) -> pure [mig]
+
+  -- compute all the paths in the dom graph from the root to this migration
+  let (migrationClosure, migrationEdges) = mkMigrationClosure reg migrations
+
   obfuscateMigrationName <-
       if not (cmd ^. pickleObfuscate)
       then pure id
       else do
         migMap <-
             fmap M.fromList $
-            forM migrations $ \mig -> do
+            forM migrationClosure $ \mig -> do
               hash <- calcMigrationHash <$> T.readFile (fullFilePath ctx (MigrateFile mig ApplyScript))
               pure (mig, MigrationName hash)
 
@@ -65,8 +74,7 @@ beamMigratePickle ctx cmd = do
 
   (obfuscateMigrationName -> MigrationName tip, _) <- fromMaybe (beamMigrateError ctx ("Branch " <> pretty tipBranch <> " has no migrations")) <$> getMigration tipBranch
 
-  let (migrationClosure, migrationEdges) = mkMigrationClosure reg migrations
-      files = do
+  let files = do
         mig <- migrationClosure
         script <- [ ApplyScript, RevertScript ]
         pure (MigrateFile mig script)

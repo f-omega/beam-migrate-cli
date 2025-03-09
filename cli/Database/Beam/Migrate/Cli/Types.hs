@@ -172,6 +172,11 @@ data VerifyCmd
     , _verifySource         :: !DbSource
     }
     deriving Show
+data DumpCmd
+    = DumpCmd
+    { _dumpSources :: [DbSource]
+    , _dumpJson :: Bool
+    } deriving Show
 data InitDbCmd
     = InitDbCmd
     { _initDbDryRun :: !Bool
@@ -199,6 +204,7 @@ data DiffFormatSpec = HaskellFormat | SourceFormat | DestinationFormat | SomeFor
 data DiffCmd
     = DiffCmd
     { _diffFormat :: !DiffFormatSpec
+    , _diffDump   :: !Bool
     , _diffSource :: !DbSource
     , _diffDest   :: !DbSource
     } deriving Show
@@ -240,6 +246,7 @@ data CliCommand
     | Log LogCmd
     | Add AddCmd
     | Abort AbortCmd
+    | Dump DumpCmd
 
     | ManageDb ManageDb
 
@@ -266,6 +273,7 @@ data MigrateFile
       deriving (Show, Eq, Ord)
 
 makeLenses ''AbortCmd
+makeLenses ''DumpCmd
 makeLenses ''AddCmd
 makeLenses ''CommitCmd
 makeLenses ''DiffCmd

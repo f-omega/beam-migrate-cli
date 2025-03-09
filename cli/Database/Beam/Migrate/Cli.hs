@@ -27,6 +27,7 @@ import           Database.Beam.Migrate.Cli.Commands.Abort (beamMigrateAbort)
 import           Database.Beam.Migrate.Cli.Commands.Add (beamMigrateAdd)
 import           Database.Beam.Migrate.Cli.Commands.Commit (beamMigrateCommit)
 import           Database.Beam.Migrate.Cli.Commands.Diff (beamMigrateDiff)
+import           Database.Beam.Migrate.Cli.Commands.Dump (beamMigrateDump)
 import           Database.Beam.Migrate.Cli.Commands.Edit (beamMigrateEdit)
 import           Database.Beam.Migrate.Cli.Commands.Log (beamMigrateLog)
 import           Database.Beam.Migrate.Cli.Commands.ManageDb (beamMigrateManageDb)
@@ -127,6 +128,7 @@ cliOptsParser bm =
       verificationCommands =
           subparser . mconcat $
                    [ command "verify" (info (verifyCmd <**> helper) (progDesc "Get status of migration registry"))
+                   , command "dump" (info (dumpCmd <**> helper) (progDesc "Dump out the beam-migrate constraints read from the given source"))
                    , command "diff" (info (diffCmd <**> helper) (progDesc "Get difference between two database specs"))
                    , commandGroup "Schema Management:"
                    ]
@@ -158,8 +160,11 @@ cliOptsParser bm =
                                 <*> switch (help "Do not run SQL commands, just display them" <> long "dry-run")
                                 <*> switch (help "Do not commit changes, just try to apply them" <> long "test")
                                 <*> (T.pack <$> strOption (long "note" <> short 'N' <> help "Note to add to log" <> value "")))
-      verifyCmd  = Verify <$> (VerifyCmd <$> switch (help "Do not perform an internal sanity check. Just run the verify script" <> long "--skip-internal")
+      verifyCmd  = Verify <$> (VerifyCmd <$> switch (help "Do not perform an internal sanity check. Just run the verify script" <> long "skip-internal")
                                          <*> (fromString <$> strArgument (metavar "SOURCE" <> help "Source to read database from" <> value "HEAD")))
+
+      dumpCmd = Dump <$> (DumpCmd <$> (pure . fromString <$> strArgument (metavar "SOURCE" <> help "Source to gather constraints from" <> value "HEAD"))
+                                  <*> switch (long "json" <> help "Dump in JSON"))
 
       dbCmd = ManageDb <$> subparser (mconcat dbCommands)
       dbCommands = [ command "init" (info (initDbCmd <**> helper) (progDesc "Initialize the database"))
@@ -188,6 +193,7 @@ cliOptsParser bm =
                                flag' SourceFormat (long "source-format" <> help "Output migration in source syntax") <|>
                                flag' DestinationFormat (long "destination-format" <> help "Output migration in the destination source syntax") <|>
                                pure SomeFormat)
+                          <*> switch (long "dump" <> short 'D' <> help "Don't attempt to find a migration script, just report differences")
                           <*> (fromString <$> strArgument (metavar "SOURCE" <> help "Source database"))
                           <*> (fromString <$> strArgument (metavar "DEST" <> help "Destination database")))
 
@@ -223,6 +229,7 @@ beamMigrateCli opts = do
         Commit cmd -> beamMigrateCommit ctxt cmd
         Verify cmd -> beamMigrateVerify ctxt cmd
         Diff cmd -> beamMigrateDiff ctxt cmd
+        Dump cmd -> beamMigrateDump ctxt cmd
         Pickle cmd -> beamMigratePickle ctxt cmd
         _ -> putStrLn "Not implemented"
   where

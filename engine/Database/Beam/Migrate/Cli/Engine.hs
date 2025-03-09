@@ -1,12 +1,14 @@
 module Database.Beam.Migrate.Cli.Engine
     ( Pickle, PickledMigration
-    , newPickle
+    , newPickle, registerApplyScript, registerRevertScript
+
+    , bringUpToDate, bringUpToDate', defaultBeamMigrateDb
     ) where
 
 import           Database.Beam
-import           Database.Beam.Migrate (HasDefaultSqlDataType)
+import           Database.Beam.Migrate (HasDefaultSqlDataType, unCheckDatabase)
 import           Database.Beam.Migrate.Backend
-import           Database.Beam.Migrate.Cli.Engine.Database (MigrationName(..), BeamMigrateDb, migrateTableExistsPredicate, getLastBeamMigrateVersion', insertBeamMigrationVersion, listAllAppliedMigrations)
+import           Database.Beam.Migrate.Cli.Engine.Database (MigrationName(..), BeamMigrateDb, migrateTableExistsPredicate, getLastBeamMigrateVersion', insertBeamMigrationVersion, listAllAppliedMigrations, beamMigrateDb, BeamMigrateCliBackend)
 import           Database.Beam.Migrate.Cli.Engine.Database.Migrations (getMigrationsFrom)
 import           Database.Beam.Migrate.Cli.Engine.Migrate
     (dominatorGraph, dualGraph, findPathMaybe, findLastCommonDominator, migrate, findTips, MigrationAction(..))
@@ -82,9 +84,17 @@ graphFromPickle pickle =
         addRoot x = x
     in (ix (pickleTip pickle), gr, (V.!) sortedVector, ix)
 
-bringUpToDate :: (MonadIO m, HasSqlEqualityCheck be Text, HasDefaultSqlDataType be LocalTime)
-              => BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb -> Pickle -> m ()
-bringUpToDate be@BeamMigrationBackend { backendRunSqlScript = runSql
+defaultBeamMigrateDb :: BeamMigrateCliBackend be
+                     => DatabaseSettings be BeamMigrateDb
+defaultBeamMigrateDb = unCheckDatabase beamMigrateDb
+
+bringUpToDate :: (BeamMigrateCliBackend be, MonadIO m, HasSqlEqualityCheck be Text, HasDefaultSqlDataType be LocalTime)
+              => BeamMigrationBackend be m -> Pickle -> m ()
+bringUpToDate be pk = bringUpToDate' be defaultBeamMigrateDb pk
+
+bringUpToDate' :: (MonadIO m, HasSqlEqualityCheck be Text, HasDefaultSqlDataType be LocalTime)
+               => BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb -> Pickle -> m ()
+bringUpToDate' be@BeamMigrationBackend { backendRunSqlScript = runSql
                                       , backendWithTransaction = tx
                                       , backendRenderSyntax = render
                                       , backendGetDbConstraints = getConstraints }

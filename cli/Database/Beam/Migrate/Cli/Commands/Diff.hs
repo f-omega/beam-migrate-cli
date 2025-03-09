@@ -92,14 +92,18 @@ beamMigrateDiff ctx cmd =
     whenVerbose ctx $
       beamMigrateMessage ctx (hang 2 ("Dest state:" <> line <> foldMap (\(SomeDatabasePredicate p) -> "- " <> fromString (englishDescription p) <> line) destPt))
 
-    solution <- interactiveSolution ctx renderSrc (heuristicSolver solver srcPt destPt)
-    case solution of
-      Candidates [] -> beamMigrateError ctx "No migration found"
-      Candidates (x:_) ->
-          let missing = HS.fromList destPt `HS.difference` dbStateKey x
-          in beamMigrateError ctx (hang 2 ("No migration found:" <> line <> foldMap (\(SomeDatabasePredicate p) -> "- " <> fromString (englishDescription p) <> line) missing) <> line <> "For migration: " <> line <>
-                                  renderSrc (map migrationCommand (toList (dbStateCmdSequence x))))
-      Solved cmds -> beamMigrateOutput ctx (renderSrc (map migrationCommand cmds))
+    if cmd ^. diffDump
+       then let diff = diffPoints (DatabasePoint srcPt) (DatabasePoint destPt)
+            in reportDatabaseDifference ctx diff
+       else do
+         solution <- interactiveSolution ctx renderSrc (heuristicSolver solver srcPt destPt)
+         case solution of
+           Candidates [] -> beamMigrateError ctx "No migration found"
+           Candidates (x:_) ->
+               let missing = HS.fromList destPt `HS.difference` dbStateKey x
+               in beamMigrateError ctx (hang 2 ("No migration found:" <> line <> foldMap (\(SomeDatabasePredicate p) -> "- " <> fromString (englishDescription p) <> line) missing) <> line <> "For migration: " <> line <>
+                                       renderSrc (map migrationCommand (toList (dbStateCmdSequence x))))
+           Solved cmds -> beamMigrateOutput ctx (renderSrc (map migrationCommand cmds))
 
 interactiveSolution :: BeamMigrateContext -> ([BeamSqlBackendSyntax be] -> Message) -> Solver be -> IO (FinalSolution be)
 interactiveSolution ctx renderSrc solver =

@@ -27,6 +27,8 @@ import qualified Data.Text.IO as T
 import           Data.Vector (Vector)
 import qualified Data.Vector as V
 
+import           Debug.Trace (trace)
+
 import           System.Directory (doesDirectoryExist, getCurrentDirectory, doesPathExist)
 import           System.FilePath (takeDirectory, (</>))
 import           System.Environment (lookupEnv)
@@ -179,7 +181,7 @@ newRegistry = Registry { _regLines = mempty
 
 writeRegistry :: FilePath -> Registry -> IO ()
 writeRegistry registryPath reg =
-    T.writeFile registryPath (T.concat (reg ^. regLines . each . to getLine))
+    T.writeFile registryPath (T.unlines (reg ^. regLines . each . to getLine))
   where
     getLine (RegEntryLine x) = [x]
     getLine RegEntryDeleted = []
@@ -397,12 +399,13 @@ migrationTips reg migrations =
     in tips ^.. each . _RegEntryMigration . miName
 
 dominatorForTips :: Registry -> [MigrationName] -> Maybe MigrationName
-dominatorForTips reg migrations =
+dominatorForTips reg migrations = do
     let migrationIxs = map (flip lookupMigrationIndexNoFail reg) migrations
 
         domGraph = regDomGraph reg
-        domIx = fromMaybe (error "internal") (findLastCommonDominator domGraph 0 migrationIxs)
-    in reg ^? regLines . ix domIx . _RegEntryMigration . miName
+
+    domIx <- findLastCommonDominator domGraph 0 migrationIxs
+    reg ^? regLines . ix domIx . _RegEntryMigration . miName
 
 regDomGraph :: Registry -> Gr.Gr () Int
 regDomGraph reg = Gr.mkGraph (Gr.labNodes (reg ^. regGraph)) (map (\(t, f) -> (f, t, 1)) idoms)
@@ -440,4 +443,3 @@ mkMigrationClosure reg nms =
           bNm <- maybeToList (V.unsafeIndex (reg ^. regLines) b ^? _RegEntryMigration . miName)
           pure (aNm, bNm)
     in (migNames, edges)
-

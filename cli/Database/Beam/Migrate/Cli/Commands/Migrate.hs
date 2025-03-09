@@ -50,9 +50,10 @@ beamMigrateMigrate ctx cmd = do
   user <- getCurrentUser ctx
 
   -- If dom is not the migration names bail
-  unless (migrationNames == maybeToList dom) $
+
+  unless (tips == maybeToList dom) $
     beamMigrateError ctx ("Can't undo migrations yet")
-  putStrLn ("Graph is " ++ show (regDomGraph reg))
+
   if dom == (fst <$> migration)
      then beamMigrateMessage ctx "Nothing to do"
      else do

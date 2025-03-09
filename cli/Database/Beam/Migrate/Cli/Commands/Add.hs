@@ -36,11 +36,12 @@ beamMigrateAdd ctxt add = do
 
   commitMessage <- getOrEditMessage ctxt (commitMessageTemplate (add ^. addMigrationName)) (add ^. addCommitMessage)
 
-  let deps = Set.fromList (maybeToList mLastMigration ++ add ^. addMigrationDeps)
+  let deps = Set.fromList depsList
+      depsList = maybeToList mLastMigration ++ add ^. addMigrationDeps
       newMigration = defaultMigrationInfo
                      & miName .~ (add ^. addMigrationName)
                      & miCommitMessage .~ commitMessage
-                     & miDependencies .~ (add ^. addMigrationDeps)
+                     & miDependencies .~ depsList
                      & miBranchStatus .~ [BranchStatus Working branch]
 
   modifyContextRegistry' ctxt $ \reg ->
@@ -56,7 +57,7 @@ beamMigrateAdd ctxt add = do
         Nothing -> pure emptyMigrationSchema
         Just migration -> do
           schema <- readMigrationSchema ctxt migration
-          pure (emptyMigrationSchema & msStartingSchema .~ (schema ^. msEndingSchema)) 
+          pure (emptyMigrationSchema & msStartingSchema .~ (schema ^. msEndingSchema))
 
   let newDirName = fullFilePath ctxt (MigrationDir (add ^. addMigrationName))
   createDirectory newDirName

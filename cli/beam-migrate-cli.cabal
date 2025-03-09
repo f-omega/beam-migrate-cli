@@ -20,6 +20,7 @@ library
       Database.Beam.Migrate.Cli.Commands.Commit
       Database.Beam.Migrate.Cli.Commands.Common
       Database.Beam.Migrate.Cli.Commands.Diff
+      Database.Beam.Migrate.Cli.Commands.Dump
       Database.Beam.Migrate.Cli.Commands.Edit
       Database.Beam.Migrate.Cli.Commands.Log
       Database.Beam.Migrate.Cli.Commands.ManageDb
