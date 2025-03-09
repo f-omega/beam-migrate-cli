@@ -1,3 +1,24 @@
 packages:
 	engine
 	cli
+
+source-repository-package
+        type: git
+        location: https://github.com/f-omega/beam.git
+        tag: 8f1f9b24f42031fdb3dc9ae6c76e59d7896ca92a
+        subdir: beam-core
+        --sha256: 14p3isrqi2f0khf6c4h2653q2sqk0v4gn0840rnjfbyx2khvfi96
+
+source-repository-package
+        type: git
+        location: https://github.com/f-omega/beam.git
+        tag: 8f1f9b24f42031fdb3dc9ae6c76e59d7896ca92a
+        subdir: beam-migrate
+        --sha256: 14p3isrqi2f0khf6c4h2653q2sqk0v4gn0840rnjfbyx2khvfi96
+
+source-repository-package
+        type: git
+        location: https://github.com/f-omega/beam.git
+        tag: 8f1f9b24f42031fdb3dc9ae6c76e59d7896ca92a
+        subdir: beam-sqlite
+        --sha256: 14p3isrqi2f0khf6c4h2653q2sqk0v4gn0840rnjfbyx2khvfi96
