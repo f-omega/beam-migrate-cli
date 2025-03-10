@@ -22,12 +22,9 @@ import           Control.Monad (when)
 import           Control.Monad.Reader (runReaderT, ReaderT(..), ask, MonadTrans)
 import           Control.Monad.Trans (MonadTrans, lift)
 
-import           Crypto.Hash (hashWith, SHA512 (SHA512))
-
 import qualified Data.Aeson as JSON
 import qualified Data.Aeson.KeyMap as JSON
 import qualified Data.Aeson.Types as JSON (parseMaybe)
-import           Data.ByteArray.Encoding (convertToBase, Base(Base16))
 import           Data.Foldable (foldrM)
 import qualified Data.HashSet as HS
 import           Data.List (partition, isPrefixOf, find)
@@ -391,9 +388,6 @@ withBeamMigrationBackend ctx _ = noDatabaseError ctx
 getCurrentUser :: BeamMigrateContext -> IO Text
 getCurrentUser ctx =
   ctx ^. bmcOpts . beamMigrateGetCurrentUser
-
-calcMigrationHash :: Text -> Text
-calcMigrationHash t = TE.decodeUtf8 (convertToBase Base16 (hashWith SHA512 (TE.encodeUtf8 t)))
 
 readCurrentDbPoint :: BeamMigrateContext -> IO DatabasePoint
 readCurrentDbPoint ctx = readDbPoint ctx =<< getRunner ctx

@@ -54,7 +54,9 @@ migrate graph tips latest =
     let domGr = dominatorGraph @gr graph
         reversed = dualGraph @gr domGr
 
-        mDom = findLastCommonDominator domGr 0 tips
+        mDom = case tips of
+                 [] -> Just 0
+                 _ -> findLastCommonDominator domGr 0 tips
     in case mDom of
          Nothing  -> Left NoLastCommonDominator
          Just dom ->
@@ -62,12 +64,12 @@ migrate graph tips latest =
                       (map ApplyPatch <$> findPathMaybe domGr dom latest)
 
                migrationToDom tip = maybe (Left (NoPathFound tip dom)) Right $
-                                    (map RevertPatch <$> findPathMaybe reversed tip dom)
+                                    (map RevertPatch <$> findPathMaybe reversed dom tip)
            in (<>)
               -- Revert all tips to d, in some order (shouldn't matter)
               <$> getAp (foldMap (Ap . migrationToDom) tips)
               -- Then migrate from dominator to the current latest version
-              <*> path
+              <*> if dom == 0 then tail <$> path else path
 
 findTips :: Gr.DynGraph gr => gr node edge -> [Int] -> [Int]
 findTips gr migIxs =

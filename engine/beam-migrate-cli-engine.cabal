@@ -38,8 +38,10 @@ library
     , beam-core
     , beam-migrate
     , containers
+    , cryptonite
     , fgl
     , lens
+    , memory
     , text
     , time
     , vector

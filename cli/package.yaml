@@ -23,8 +23,6 @@ dependencies:
   - aeson
   - prettyprinter
   - prettyprinter-ansi-terminal
-  - cryptonite
-  - memory
 
 default-extensions:
   - GADTs

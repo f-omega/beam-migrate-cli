@@ -20,11 +20,15 @@ import           Database.Beam.Schema.Tables (dbEntityName, dbEntityDescriptor, 
 import           Control.Lens (makeLenses, (&), (.~), Lens', (^.))
 import           Control.Monad (join)
 
+import           Crypto.Hash (hashWith, SHA512 (SHA512))
+
+import           Data.ByteArray.Encoding (convertToBase, Base(Base16))
 import           Data.Int (Int32)
 import           Data.Maybe (fromMaybe)
 import           Data.Proxy (Proxy(..))
 import           Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import           Data.Time (LocalTime)
 import           Data.Time (ZonedTime(zonedTimeToLocalTime), getZonedTime)
 
@@ -185,3 +189,6 @@ listAllAppliedMigrations BeamMigrationBackend{} migrateDb =
                 reversionEntry ^. bmlAction ==. val_ Revert)
         pure reversionEntry
       pure (entry ^. bmlName)
+
+calcMigrationHash :: Text -> Text
+calcMigrationHash t = TE.decodeUtf8 (convertToBase Base16 (hashWith SHA512 (TE.encodeUtf8 t)))

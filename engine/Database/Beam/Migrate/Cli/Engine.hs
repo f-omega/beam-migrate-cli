@@ -1,6 +1,6 @@
 module Database.Beam.Migrate.Cli.Engine
     ( Pickle, PickledMigration
-    , newPickle, registerApplyScript, registerRevertScript
+    , newPickle, registerApplyScript, registerRevertScript, addMigrationEdge
 
     , bringUpToDate, bringUpToDate', defaultBeamMigrateDb
     ) where
@@ -8,13 +8,15 @@ module Database.Beam.Migrate.Cli.Engine
 import           Database.Beam
 import           Database.Beam.Migrate (HasDefaultSqlDataType, unCheckDatabase)
 import           Database.Beam.Migrate.Backend
-import           Database.Beam.Migrate.Cli.Engine.Database (MigrationName(..), BeamMigrateDb, migrateTableExistsPredicate, getLastBeamMigrateVersion', insertBeamMigrationVersion, listAllAppliedMigrations, beamMigrateDb, BeamMigrateCliBackend)
+import           Database.Beam.Migrate.Cli.Engine.Database (MigrationName(..), BeamMigrateLogT(..), BeamMigrateAction(..), BeamMigrateDb, migrateTableExistsPredicate, getLastBeamMigrateVersion', insertBeamMigrationVersion, listAllAppliedMigrations, beamMigrateDb, BeamMigrateCliBackend, calcMigrationHash, bmdbLog, getNextEntryId)
 import           Database.Beam.Migrate.Cli.Engine.Database.Migrations (getMigrationsFrom)
 import           Database.Beam.Migrate.Cli.Engine.Migrate
     (dominatorGraph, dualGraph, findPathMaybe, findLastCommonDominator, migrate, findTips, MigrationAction(..))
 
+import           Control.Lens ((^.))
 import           Control.Monad (unless)
 
+import           Data.Foldable (forM_)
 import qualified Data.Graph.Inductive as Gr
 import           Data.List (sort, nub, find)
 import qualified Data.Map as Map
@@ -22,9 +24,8 @@ import           Data.Maybe (fromMaybe)
 import           Data.Ord (comparing)
 import           Data.String (fromString)
 import           Data.Text (Text)
+import           Data.Time (LocalTime, getZonedTime, zonedTimeToLocalTime)
 import qualified Data.Vector as V
-import           Data.Foldable (forM_)
-import           Data.Time (LocalTime)
 
 
 -- | A set of pickled migrations that can be embedded into a binary
@@ -69,6 +70,13 @@ registerRevertScript nm contents pickle =
         mig' = p:pickleMigrations pickle
     in mig' `seq` pickle { pickleMigrations = mig' }
 
+{-# INLINE addMigrationEdge #-}
+addMigrationEdge :: String -> String -> Pickle -> Pickle
+addMigrationEdge from to p =
+    deps' `seq` p { pickleDeps = deps' }
+  where
+    deps' = (MigrationName (fromString from), MigrationName (fromString to)):pickleDeps p
+
 graphFromPickle :: Pickle -> (Int, Gr.Gr (Maybe MigrationName) (), Int -> MigrationName, MigrationName -> Int)
 graphFromPickle pickle =
     let names = zip [1..] (map Just sorted)
@@ -79,10 +87,9 @@ graphFromPickle pickle =
         ix a = fromMaybe (error "impossible") (Map.lookup a nameMap)
         edges = map (\(a, b) -> (ix a, ix b, ())) (pickleDeps pickle)
 
-        gr = Gr.gmap addRoot (Gr.mkGraph ((0, Nothing):names) edges)
-        addRoot ([], n, l, outs) = ([((), 0)], n, l, outs)
-        addRoot x = x
-    in (ix (pickleTip pickle), gr, (V.!) sortedVector, ix)
+        gr = Gr.mkGraph ((0, Nothing):names) edges
+        gr' = foldr (\n -> Gr.insEdge (0, n, ())) gr [n | n <- Gr.nodes gr, Gr.indeg gr n == 0, n /= 0 ]
+    in (ix (pickleTip pickle), gr', ((V.!) sortedVector) . pred, ix)
 
 defaultBeamMigrateDb :: BeamMigrateCliBackend be
                      => DatabaseSettings be BeamMigrateDb
@@ -122,10 +129,24 @@ bringUpToDate' be@BeamMigrationBackend { backendRunSqlScript = runSql
 
   allMigrations <- fmap migrationToIx <$> listAllAppliedMigrations be migrateDb
   let tips = findTips gr allMigrations
+      insertEntry ty migration = do
+        entryId <- getNextEntryId migrateDb
+        today <- zonedTimeToLocalTime <$> liftIO getZonedTime
+        runInsert $ insert (migrateDb ^. bmdbLog)
+                  $ insertExpressions
+                    [ BeamMigrateLog { _bmlId = val_ entryId
+                                     , _bmlName = val_ (pmName migration)
+                                     , _bmlBranch = nothing_
+                                     , _bmlAction = val_ ty
+                                     , _bmlUser = val_ mempty
+                                     , _bmlDate = val_ today
+                                     , _bmlNote = val_ mempty
+                                     , _bmlMigrateHash = just_ (val_ (calcMigrationHash (pmContents migration)))
+                                     , _bmlMigrateVersion = val_ version } ]
 
   -- Now the schema is up-to-date, apply the migrations
   case migrate gr tips latest of
-    Left _err -> error "bringUpToDate: could not apply database migrations"
+    Left _err -> error ("bringUpToDate: could not apply database migrations: " ++ show _err ++ ": " ++ show gr)
     Right acts ->
       forM_ acts $ \act ->
         case act of
@@ -133,9 +154,9 @@ bringUpToDate' be@BeamMigrationBackend { backendRunSqlScript = runSql
             let name = ixToMigration i
             in case find (\pm -> pmName pm == name && not (pmRevert pm)) (pickleMigrations pickle) of
                  Nothing -> error "bringUpToDate: could not find apply script"
-                 Just pm -> tx (runSql (pmContents pm))
+                 Just pm -> tx (runSql (pmContents pm) >> insertEntry Apply pm)
           RevertPatch i ->
             let name = ixToMigration i
             in case find (\pm -> pmName pm == name && pmRevert pm) (pickleMigrations pickle) of
                  Nothing -> error "bringUpToDate: could not find revert script"
-                 Just pm -> tx (runSql (pmContents pm))
+                 Just pm -> tx (runSql (pmContents pm) >> insertEntry Revert pm)

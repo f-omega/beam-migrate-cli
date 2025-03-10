@@ -58,13 +58,11 @@ library
     , beam-migrate-cli-engine
     , bytestring
     , containers
-    , cryptonite
     , directory
     , editor-open
     , fgl
     , filepath
     , lens
-    , memory
     , mtl
     , optparse-applicative
     , prettyprinter
@@ -114,13 +112,11 @@ executable beam-migrate-cli-test
     , beam-sqlite
     , bytestring
     , containers
-    , cryptonite
     , directory
     , editor-open
     , fgl
     , filepath
     , lens
-    , memory
     , mtl
     , optparse-applicative
     , prettyprinter

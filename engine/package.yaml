@@ -19,6 +19,8 @@ dependencies:
   - fgl
   - vector
   - containers
+  - cryptonite
+  - memory
 
 default-extensions:
   - TemplateHaskell
