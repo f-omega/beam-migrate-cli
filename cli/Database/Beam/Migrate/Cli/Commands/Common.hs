@@ -17,7 +17,7 @@ import           Database.Beam.Migrate.Simple (VerificationResult, verifySchema)
 
 import           Control.Applicative (empty)
 import           Control.Exception (Exception, throwIO, SomeException (..), catch, bracket, throw)
-import           Control.Lens ((^.), has, _2, view, preview, _1, _Just)
+import           Control.Lens ((^.), has, _2, view, preview, _1, _Just, (%~), (&))
 import           Control.Monad (when)
 import           Control.Monad.Reader (runReaderT, ReaderT(..), ask, MonadTrans)
 import           Control.Monad.Trans (MonadTrans, lift)
@@ -91,6 +91,10 @@ getCurrentBranchOrDie ctxt = do
 updateMigration :: BeamMigrateContext -> MigrationInfo -> IO ()
 updateMigration ctxt mig =
   modifyContextRegistry' ctxt (\reg -> pure (updateMigrationInRegistry mig reg))
+
+removeBranchFromMigration :: BeamMigrateContext -> MigrationName -> BranchName -> IO ()
+removeBranchFromMigration ctxt mig branch =
+  modifyContextRegistry' ctxt $ pure . (updateMigrationInRegistryByName mig $ \mi -> mi & miBranchStatus %~ filter ((/= branch) . view branchStatusBranch))
 
 unregisterMigration :: BeamMigrateContext -> MigrationName -> IO ()
 unregisterMigration ctxt nm =

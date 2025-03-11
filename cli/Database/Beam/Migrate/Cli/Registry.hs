@@ -343,12 +343,13 @@ addRegistryEntry reg e@(RegEntryMigration orig) = do
             & regGraph %~ (context Gr.&))
 
 updateMigrationInRegistry :: MigrationInfo -> Registry -> Registry
-updateMigrationInRegistry mi reg =
-    let mi' = formatMigrationInfo mi
-    in case lookupMigrationIndex (mi ^. miName) reg of
-         Nothing -> error "updateMigrationInRegistry: not found"
-         Just  i -> reg & regLines . ix i .~ RegEntryMigration mi'
+updateMigrationInRegistry mi = updateMigrationInRegistryByName (mi ^. miName) (\_ -> mi)
 
+updateMigrationInRegistryByName :: MigrationName -> (MigrationInfo -> MigrationInfo) -> Registry -> Registry
+updateMigrationInRegistryByName nm mod reg =
+    case lookupMigrationIndex nm reg of
+      Nothing -> error "updateMigrationInRegistry: not found"
+      Just  i -> reg & regLines . ix i . _RegEntryMigration %~ formatMigrationInfo . mod
 
 -- | Update the miFullText field based on the info
 formatMigrationInfo :: MigrationInfo -> MigrationInfo
