@@ -45,12 +45,12 @@ beamMigrateCommit ctx cmd = do
                   getMigration ctx nm
 
        let migInfo' = updateOrCreateBranchStatus migInfo (BranchStatus Committed branch)
-       updateMigration ctx migInfo'
        mLastCommitted <- getLatestCommittedMigration ctx branch
        case mLastCommitted of
          Nothing -> pure ()
          Just (last, _) ->
              removeBranchFromMigration ctx last branch
+       updateMigration ctx migInfo'
 
        -- Now save the migrations file
        sch <- readMigrationSchema ctx nm
