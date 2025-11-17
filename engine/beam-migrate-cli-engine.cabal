@@ -33,6 +33,7 @@ library
       RankNTypes
       TypeApplications
       ScopedTypeVariables
+      LambdaCase
   build-depends:
       base
     , beam-core

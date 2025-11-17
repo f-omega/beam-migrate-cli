@@ -3,6 +3,8 @@ module Database.Beam.Migrate.Cli.Engine
     , newPickle, registerApplyScript, registerRevertScript, addMigrationEdge
 
     , bringUpToDate, bringUpToDate', defaultBeamMigrateDb
+
+    , backendWithSqlHook
     ) where
 
 import           Database.Beam
@@ -24,6 +26,7 @@ import           Data.Maybe (fromMaybe)
 import           Data.Ord (comparing)
 import           Data.String (fromString)
 import           Data.Text (Text)
+import qualified Data.Text as Text
 import           Data.Time (LocalTime, getZonedTime, zonedTimeToLocalTime)
 import qualified Data.Vector as V
 
@@ -102,9 +105,9 @@ bringUpToDate be pk = bringUpToDate' be defaultBeamMigrateDb pk
 bringUpToDate' :: (MonadIO m, HasSqlEqualityCheck be Text, HasDefaultSqlDataType be LocalTime)
                => BeamMigrationBackend be m -> DatabaseSettings be BeamMigrateDb -> Pickle -> m ()
 bringUpToDate' be@BeamMigrationBackend { backendRunSqlScript = runSql
-                                      , backendWithTransaction = tx
-                                      , backendRenderSyntax = render
-                                      , backendGetDbConstraints = getConstraints }
+                                       , backendWithTransaction = tx
+                                       , backendRenderSyntax = render
+                                       , backendGetDbConstraints = getConstraints }
               migrateDb pickle = do
   cs <- getConstraints
   let tblExists = migrateTableExistsPredicate be migrateDb `elem` cs
@@ -160,3 +163,6 @@ bringUpToDate' be@BeamMigrationBackend { backendRunSqlScript = runSql
             in case find (\pm -> pmName pm == name && pmRevert pm) (pickleMigrations pickle) of
                  Nothing -> error "bringUpToDate: could not find revert script"
                  Just pm -> tx (runSql (pmContents pm) >> insertEntry Revert pm)
+
+backendWithSqlHook :: MonadIO m => (String -> IO ()) -> BeamMigrationBackend be m -> BeamMigrationBackend be m
+backendWithSqlHook hook be = be { backendRunSqlScript = \x -> liftIO (hook (Text.unpack x)) >> backendRunSqlScript be x }

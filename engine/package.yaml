@@ -37,6 +37,7 @@ default-extensions:
   - RankNTypes
   - TypeApplications
   - ScopedTypeVariables
+  - LambdaCase
 
 library:
   exposed-modules:
